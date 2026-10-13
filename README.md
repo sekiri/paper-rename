@@ -8,9 +8,19 @@ arXivの `2301.00001v1.pdf` や DOI 名 `s41586-020-2649-2.pdf` のような
 
 ## 使い方
 
-```bash
-pip install pymupdf
+依存は [PyMuPDF](https://pypi.org/project/pymupdf/) のみ。グローバルに入れなくてすむ方法はいくつかあります。
 
+```bash
+# 方法1(推奨): uvならvenvすら不要。スクリプト内のPEP 723メタデータから自動で一時環境を作る
+uv run paper_rename.py ~/Downloads
+
+# 方法2: プロジェクト用venv
+python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install pymupdf
+python paper_rename.py ~/Downloads
+```
+
+```bash
 python3 paper_rename.py ~/Downloads          # 一覧表示 → y入力で実行
 python3 paper_rename.py --dry-run ~/Downloads  # 一覧表示のみ
 python3 paper_rename.py --apply ~/Downloads    # 確認なしで即実行

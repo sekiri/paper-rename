@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.8"
+# dependencies = ["pymupdf"]
+# ///
 """
 paper_rename.py — 論文PDFを、PDF内から読み取ったタイトルでリネームする。
 
