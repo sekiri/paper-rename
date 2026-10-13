@@ -93,9 +93,9 @@ def sanitize(title: str) -> str:
 
 
 def plausible_meta(title: str) -> bool:
-    """PDFメタデータのtitleが信用できるか。"""
+    """PDFメタデータのtitle/subjectが信用できるか。"""
     t = (title or "").strip()
-    if len(t) < 8:
+    if len(t) < 8 or len(t) > 160:
         return False
     if t.lower() in ("untitled", "microsoft word - untitled"):
         return False
@@ -104,6 +104,15 @@ def plausible_meta(title: str) -> bool:
     if re.search(r"\\[a-zA-Z]+", t):
         return False
     return True
+
+
+# 「論文タイトル」ではなく「雑誌・シリーズ名」らしきメタデータを見分ける
+JOURNALISH = re.compile(
+    r"(学会|誌$|誌の|vol(?:ume)?\.?\s*\d|第?\s*\d+\s*[巻号]|号$|"
+    r"journal|transactions|proceedings|news(?:letter)?|abstracts?|"
+    r"大会|紀要|報告集)",
+    re.IGNORECASE,
+)
 
 
 def extract_title_page1(doc) -> str:
@@ -148,13 +157,21 @@ def get_title(path: Path) -> str:
         print(f"  ! 開けない: {path.name} ({e})", file=sys.stderr)
         return ""
     try:
-        meta = sanitize(doc.metadata.get("title", ""))
-        if plausible_meta(doc.metadata.get("title", "")):
-            return meta
+        md = doc.metadata
+        meta_t = (md.get("title") or "").strip()
+        meta_s = (md.get("subject") or "").strip()
+        # 1) titleが雑誌名らしくないならtitleを採用
+        if plausible_meta(meta_t) and not JOURNALISH.search(meta_t):
+            return sanitize(meta_t)
+        # 2) titleが雑誌名/使えない → subject(論文名が入っていることがある)
+        if plausible_meta(meta_s) and not JOURNALISH.search(meta_s):
+            return sanitize(meta_s)
+        # 3) 1ページ目のタイポグラフィから抽出
         page_t = sanitize(extract_title_page1(doc))
-        if page_t:
+        if page_t and not JOURNALISH.search(page_t):
             return page_t
-        return meta  # メタデータが短いだけ等の最終フォールバック
+        # 4) 最終フォールバック
+        return sanitize(meta_t) or sanitize(meta_s) or page_t
     finally:
         doc.close()
 
